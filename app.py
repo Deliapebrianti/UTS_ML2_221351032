@@ -4,7 +4,7 @@ import numpy as np
 import pickle
 import tensorflow as tf
 
-# Memuat model dan objek preprocessing
+# Load the model and preprocessing objects
 @st.cache(allow_output_mutation=True)
 def load_objects():
     with open('label_encoders.pkl', 'rb') as f:
@@ -14,7 +14,7 @@ def load_objects():
     with open('target_encoder.pkl', 'rb') as f:
         le_target = pickle.load(f)
     
-    # Memuat model TFLite
+    # Load TFLite model
     interpreter = tf.lite.Interpreter(model_path="heart_disease_model.tflite")
     interpreter.allocate_tensors()
     
@@ -22,73 +22,73 @@ def load_objects():
 
 label_encoders, scaler, le_target, interpreter = load_objects()
 
-# Aplikasi Streamlit
-st.title("Prediksi Risiko Penyakit Jantung")
+# Streamlit app
+st.title("Heart Disease Risk Prediction")
 
-# Formulir Input
-st.header("Informasi Pasien")
-bmi = st.slider("Indeks Massa Tubuh (BMI)", 10.0, 50.0, 25.0)
-merokok = st.selectbox("Apakah Anda Merokok?", ["Tidak", "Ya"])
-alkohol = st.selectbox("Apakah Anda Mengonsumsi Alkohol?", ["Tidak", "Ya"])
-stroke = st.selectbox("Riwayat Stroke", ["Tidak", "Ya"])
-kesehatan_fisik = st.slider("Kesehatan Fisik (hari terganggu dalam 30 hari terakhir)", 0, 30, 0)
-kesehatan_mental = st.slider("Kesehatan Mental (hari terganggu dalam 30 hari terakhir)", 0, 30, 0)
-sulit_berjalan = st.selectbox("Kesulitan Berjalan", ["Tidak", "Ya"])
-jenis_kelamin = st.selectbox("Jenis Kelamin", ["Perempuan", "Laki-laki"])
-usia = st.selectbox("Kategori Usia", ["18-24", "25-29", "30-34", "35-39", "40-44", 
+# Input form
+st.header("Patient Information")
+bmi = st.slider("BMI", 10.0, 50.0, 25.0)
+smoking = st.selectbox("Smoking", ["No", "Yes"])
+alcohol = st.selectbox("Alcohol Drinking", ["No", "Yes"])
+stroke = st.selectbox("History of Stroke", ["No", "Yes"])
+physical_health = st.slider("Physical Health (days affected in last 30)", 0, 30, 0)
+mental_health = st.slider("Mental Health (days affected in last 30)", 0, 30, 0)
+diff_walking = st.selectbox("Difficulty Walking", ["No", "Yes"])
+sex = st.selectbox("Sex", ["Female", "Male"])
+age = st.selectbox("Age Category", ["18-24", "25-29", "30-34", "35-39", "40-44", 
                                    "45-49", "50-54", "55-59", "60-64", "65-69", 
-                                   "70-74", "75-79", "80 atau lebih"])
-ras = st.selectbox("Ras/Etnis", ["Kaukasia", "Afrika-Amerika", "Asia", "Pribumi Amerika", "Lainnya"])
-diabetes = st.selectbox("Diabetes", ["Tidak", "Ya", "Batas diabetes", "Ya (saat hamil)"])
-aktivitas_fisik = st.selectbox("Aktivitas Fisik", ["Tidak", "Ya"])
-kesehatan_umum = st.selectbox("Kesehatan Umum", ["Buruk", "Cukup", "Baik", "Sangat baik", "Luar biasa"])
-waktu_tidur = st.slider("Waktu Tidur (jam)", 1, 24, 7)
-asma = st.selectbox("Asma", ["Tidak", "Ya"])
-penyakit_ginjal = st.selectbox("Penyakit Ginjal", ["Tidak", "Ya"])
-kanker_kulit = st.selectbox("Kanker Kulit", ["Tidak", "Ya"])
+                                   "70-74", "75-79", "80 or older"])
+race = st.selectbox("Race", ["White", "Black", "Asian", "American Indian/Alaskan Native", "Other"])
+diabetic = st.selectbox("Diabetic", ["No", "Yes", "No, borderline diabetes", "Yes (during pregnancy)"])
+physical_activity = st.selectbox("Physical Activity", ["No", "Yes"])
+gen_health = st.selectbox("General Health", ["Poor", "Fair", "Good", "Very good", "Excellent"])
+sleep_time = st.slider("Sleep Time (hours)", 1, 24, 7)
+asthma = st.selectbox("Asthma", ["No", "Yes"])
+kidney_disease = st.selectbox("Kidney Disease", ["No", "Yes"])
+skin_cancer = st.selectbox("Skin Cancer", ["No", "Yes"])
 
-if st.button("Prediksi Risiko Penyakit Jantung"):
-    # Mempersiapkan data input
+if st.button("Predict Heart Disease Risk"):
+    # Prepare input data
     input_data = {
         'BMI': bmi,
-        'Smoking': merokok,
-        'AlcoholDrinking': alkohol,
+        'Smoking': smoking,
+        'AlcoholDrinking': alcohol,
         'Stroke': stroke,
-        'PhysicalHealth': kesehatan_fisik,
-        'MentalHealth': kesehatan_mental,
-        'DiffWalking': sulit_berjalan,
-        'Sex': jenis_kelamin,
-        'AgeCategory': usia,
-        'Race': ras,
-        'Diabetic': diabetes,
-        'PhysicalActivity': aktivitas_fisik,
-        'GenHealth': kesehatan_umum,
-        'SleepTime': waktu_tidur,
-        'Asthma': asma,
-        'KidneyDisease': penyakit_ginjal,
-        'SkinCancer': kanker_kulit
+        'PhysicalHealth': physical_health,
+        'MentalHealth': mental_health,
+        'DiffWalking': diff_walking,
+        'Sex': sex,
+        'AgeCategory': age,
+        'Race': race,
+        'Diabetic': diabetic,
+        'PhysicalActivity': physical_activity,
+        'GenHealth': gen_health,
+        'SleepTime': sleep_time,
+        'Asthma': asthma,
+        'KidneyDisease': kidney_disease,
+        'SkinCancer': skin_cancer
     }
     
-    # Preprocessing
+    # Preprocess
     df = pd.DataFrame([input_data])
     for col in df.select_dtypes(include=['object']).columns:
         if col in label_encoders:
             df[col] = label_encoders[col].transform(df[col])
     scaled_data = scaler.transform(df)
     
-    # Prediksi
+    # Predict
     input_details = interpreter.get_input_details()
     output_details = interpreter.get_output_details()
     interpreter.set_tensor(input_details[0]['index'], scaled_data.astype(np.float32))
     interpreter.invoke()
     prediction = interpreter.get_tensor(output_details[0]['index'])
     
-    probabilitas = prediction[0][0] * 100
-    risiko = "Risiko Tinggi" if prediction > 0.5 else "Risiko Rendah"
+    probability = prediction[0][0] * 100
+    risk = "High Risk" if prediction > 0.5 else "Low Risk"
     
-    st.success(f"Hasil Prediksi: {risk} ({probabilitas:.2f}% probability)")
+    st.success(f"Prediction: {risk} ({probability:.2f}% probability)")
     
-    if risiko == "Risiko Tinggi":
-        st.warning("Konsultasikan dengan tenaga medis untuk evaluasi lebih lanjut.")
+    if risk == "High Risk":
+        st.warning("Consult with a healthcare professional for further evaluation.")
     else:
-        st.info("Pertahankan kebiasaan sehat untuk menjaga kesehatan jantung Anda!")
+        st.info("Maintain healthy habits to keep your heart healthy!")
